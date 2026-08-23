@@ -3,6 +3,7 @@ import os
 
 from dotenv import load_dotenv
 from openai import OpenAI
+from functions.get_files_info import get_files_info
 
 
 def main() -> None:
