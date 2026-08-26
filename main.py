@@ -1,11 +1,13 @@
 import argparse
 import os
+import json
 
 from dotenv import load_dotenv
 from openai import OpenAI
 import config
 from functions.get_files_info import get_files_info
 from prompts import system_prompt
+from call_function import available_functions
 
 
 def main() -> None:
@@ -40,7 +42,9 @@ def generate_content(client: OpenAI, messages: list, verbose: bool) -> None:
         model="openrouter/free",
         messages=messages,
         temperature=0,
+        tools=available_functions,
     )
+
     if not response.usage:
         raise RuntimeError("API response appears to be malformed")
 
@@ -49,6 +53,18 @@ def generate_content(client: OpenAI, messages: list, verbose: bool) -> None:
         print("Response tokens:", response.usage.completion_tokens)
     print("Response:")
     print(response.choices[0].message.content)
+
+    message = response.choices[0].message
+
+    if message.tool_calls:
+        for tool_call in message.tool_calls:
+            function_args = json.loads(tool_call.function.arguments or "{}")
+
+        print(f"Calling function: {tool_call.function.name}({function_args}) ")
+
+    else:
+        print("Response:")
+        print(message.content)
 
 
 if __name__ == "__main__":
