@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from prompts import system_prompt
-from call_function import available_functions
+from call_function import available_functions, call_function
 
 
 def main() -> None:
@@ -35,30 +35,57 @@ def main() -> None:
 
     generate_content(client, messages, args.verbose)
 
-def generate_content(client: OpenAI, messages: list, verbose: bool) -> None:
-    response = client.chat.completions.create(
-        model="openrouter/free",
-        messages=messages,
-        tools=available_functions,
-        temperature=0,
-    )
 
-    if not response.usage:
-        raise RuntimeError("API response appears to be malformed")
+def generate_content(
+    client: OpenAI,
+    messages: list,
+    verbose: bool,
+) -> None:
 
-    if verbose:
-        print("Prompt tokens:", response.usage.prompt_tokens)
-        print("Response tokens:", response.usage.completion_tokens)
+    for _ in range(20):
+        response = client.chat.completions.create(
+            model="openrouter/free",
+            messages=messages,
+            tools=available_functions,
+            temperature=0,
+        )
 
-    message = response.choices[0].message
-    if message.tool_calls:
+        if not response.usage:
+            raise RuntimeError("API response appears to be malformed")
+
+        if verbose:
+            print("Prompt tokens:", response.usage.prompt_tokens,)
+            print("Response tokens:", response.usage.completion_tokens,)
+
+        message = response.choices[0].message
+
+        # Add the assistant's response to the conversation
+        messages.append(message)
+
+        # No tool calls means the model is finished
+        if not message.tool_calls:
+            print("Final response:")
+            print(message.content)
+            return
+
+        # Execute each requested tool
         for tool_call in message.tool_calls:
-            function_args = json.loads(tool_call.function.arguments or "{}")
+            result_message = call_function(
+                tool_call,
+                verbose,
+            )
 
-        print(f"Calling function: {tool_call.function.name}({function_args}) ")
+            if not result_message.get("content"):
+                raise RuntimeError(
+                    "Function call returned no content"
+                )
 
-    else:
-        print(message.content)
+            # Add the tool result to the conversation
+            messages.append(result_message)
+
+
+    print("Error: Maximum number of iterations reached")
+
 
 
 if __name__ == "__main__":
