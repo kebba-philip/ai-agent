@@ -166,7 +166,7 @@ are rejected.
 ## Setup
 
 ```bash
-git clone https://github.com/your-username/intelligent-agent.git
+git clone https://github.com/kebba-philip/ai-agent.git
 
 
 Install the project dependencies:
