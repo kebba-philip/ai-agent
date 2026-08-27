@@ -64,7 +64,6 @@ def generate_content(
 
         # No tool calls means the model is finished
         if not message.tool_calls:
-            print("Final response:")
             print(message.content)
             return
 
